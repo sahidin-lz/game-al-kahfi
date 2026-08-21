@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BookOpen } from 'lucide-react';
 import { StatusBar } from './components/StatusBar';
 import { StoryLogView } from './components/StoryLogView';
 import { ActionInput } from './components/ActionInput';
@@ -10,7 +11,7 @@ import { GameState, StoryLog, EvaluationResult } from './types';
 import { audioEngine } from './lib/audio';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 import { scenarioBank } from './data/scenarioData';
 
@@ -198,11 +199,15 @@ export default function App() {
               logs: logs
             });
           }
-          
+        } catch (error) {
+          console.error("Error loading save:", error);
+        }
+
+        try {
           // Sinkronisasi data pengguna ke tabel "users"
           await setDoc(doc(db, 'users', currentUser.uid), profile, { merge: true });
         } catch (error) {
-          console.error("Error loading save:", error);
+          console.error("Error saving user profile:", error);
         }
       } else {
         // Reset state on logout
@@ -251,6 +256,20 @@ export default function App() {
     }
   };
 
+  const handleResetData = async () => {
+    if (!user) return;
+    if (window.confirm("Apakah Anda yakin ingin menghapus semua progres game Anda dan mengulang dari awal?")) {
+      try {
+        await deleteDoc(doc(db, 'saves', user.uid));
+        await deleteDoc(doc(db, 'users', user.uid));
+        window.location.reload();
+      } catch (error) {
+        console.error("Error resetting data:", error);
+        alert("Gagal menghapus data. Pastikan koneksi internet lancar.");
+      }
+    }
+  };
+
   const handleActionSubmit = async (actionText: string, inputType: 'teks_esai' | 'suara_orasi') => {
     // Initialize audio on user interaction
     audioEngine.init();
@@ -279,7 +298,16 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error('Gagal mendapatkan respon dari Dosen Kehidupan');
+        let errorMsg = 'Gagal mendapatkan respon dari Dosen Kehidupan.';
+        try {
+          const errorData = await response.json();
+          if (errorData.details && errorData.details.includes('503')) {
+             errorMsg = 'Server AI Dosen Kehidupan sedang sangat sibuk karena permintaan tinggi. Mohon tunggu beberapa detik dan coba lagi.';
+          } else if (errorData.details) {
+             errorMsg = `Gagal: ${errorData.details}`;
+          }
+        } catch(e) {}
+        throw new Error(errorMsg);
       }
 
       const result: EvaluationResult = await response.json();
@@ -374,12 +402,12 @@ export default function App() {
       // Save to Firebase asynchronously
       saveToFirebase(newState, finalLogs);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       const errorLog: StoryLog = {
         id: Date.now().toString() + '-error',
         type: 'narrative',
-        content: "Terjadi kesalahan jaringan atau API. Silakan coba lagi.",
+        content: error?.message || "Terjadi kesalahan jaringan atau API. Silakan coba lagi.",
       };
       setLogs(prev => [...prev, errorLog]);
     } finally {
@@ -546,6 +574,9 @@ export default function App() {
     return <LandingPage />;
   }
 
+  const isAtBasecamp = logs.length <= 1 && gameState.status_kota === 'Waspada' && gameState.currentScenarioIndex === 0;
+  const activeQuest = gameState.quests[gameState.currentScenarioIndex];
+
   return (
     <div className={`flex flex-col h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans relative ${animationClass}`}>
       <StatusBar 
@@ -559,57 +590,122 @@ export default function App() {
         user={user}
         userProfile={userProfile}
       />
-      <StoryLogView logs={logs} loading={loading} />
-      {gameState.status_kota === 'Aman' || gameState.status_kota === 'Harmonis' ? (
-        <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-800 animate-in slide-in-from-bottom-8 flex flex-col items-center gap-4">
-          <p className="text-amber-400 font-bold uppercase tracking-widest text-center text-sm md:text-base">
-            Perjalanan dilanjutkan. Sambil transit, kelola logistikmu.
-          </p>
-          
-          <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+      {isAtBasecamp ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 animate-in zoom-in duration-700 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10"></div>
+          <div className="bg-slate-900/80 border-2 border-emerald-500/50 p-8 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.15)] max-w-2xl w-full text-center z-10 backdrop-blur-md">
+            <div className="w-24 h-24 bg-emerald-950 border-4 border-emerald-500 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+              🏕️
+            </div>
+            <h2 className="text-3xl font-bold text-white mb-2 uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+              Basecamp Kafilah
+            </h2>
+            <p className="text-slate-400 mb-8 text-sm leading-relaxed">
+              Selamat datang, Sosiolog Muda! Dunia sedang menanti solusi darimu. 
+              Pilih misimu, lafalkan ayatnya, dan temukan kearifan budaya Nusantara di setiap langkah.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-xl mb-2 block">🌟</span>
+                <div className="text-xs text-slate-500 uppercase font-bold">Total Capaian</div>
+                <div className="text-lg font-bold text-emerald-400">Level {gameState.currentScenarioIndex + 1}</div>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <span className="text-xl mb-2 block">🎒</span>
+                <div className="text-xs text-slate-500 uppercase font-bold">Modal Perjalanan</div>
+                <div className="text-lg font-bold text-amber-400">Rp {gameState.uang_qris.toLocaleString('id-ID')}</div>
+              </div>
+            </div>
+
             <button
-              onClick={() => handleBuyFood()}
-              disabled={gameState.uang_qris < 15000 || gameState.energi >= 100}
-              className="flex-1 p-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
+              onClick={() => setIsSideQuestsOpen(true)}
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all uppercase tracking-widest flex items-center justify-center gap-3 hover:scale-105"
             >
-              <div className="text-emerald-400 font-bold">Beli Makanan (Rp 15.000)</div>
-              <div className="text-xs text-slate-400">+20 Energi</div>
+              🗺️ Buka Peta Petualangan
             </button>
             <button
-              onClick={() => handleWriteArticle()}
-              disabled={gameState.energi < 10}
-              className="flex-1 p-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
+              onClick={handleResetData}
+              className="w-full py-3 mt-4 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 font-bold rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-3 text-xs border border-transparent hover:border-red-900"
             >
-              <div className="text-cyan-400 font-bold">Tulis Artikel</div>
-              <div className="text-xs text-slate-400">-10 Energi, +Rp Acak</div>
-            </button>
-            <button
-              onClick={() => setIsTahfidzOpen(true)}
-              disabled={gameState.energi < 5}
-              className="flex-1 p-4 bg-amber-900/50 hover:bg-amber-800/50 disabled:opacity-50 disabled:cursor-not-allowed border border-amber-700/50 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors shadow-[inset_0_0_15px_rgba(245,158,11,0.1)]"
-            >
-              <div className="text-amber-400 font-bold">Murojaah (Ayat)</div>
-              <div className="text-xs text-amber-200/50">-5 Energi, +15 Hifdz</div>
+              🔄 Hapus Save Data & Ulang dari Awal
             </button>
           </div>
-
-          <button
-            onClick={handleNextScenario}
-            disabled={gameState.energi <= 20}
-            className="w-full max-w-2xl py-4 mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all uppercase tracking-widest flex items-center justify-center gap-3 text-sm"
-          >
-            Lanjutkan Perjalanan (Rihlah)
-          </button>
-          {gameState.energi <= 20 && (
-            <p className="text-red-400 text-xs text-center font-mono">Energi tidak cukup untuk melanjutkan perjalanan (Minimal &gt; 20).</p>
-          )}
-        </div>
-      ) : gameState.status_kota === 'Tamat' ? (
-        <div className="p-6 bg-slate-900 border-t border-slate-800 flex justify-center text-amber-400 font-bold uppercase tracking-widest text-center">
-          Tamat - Semua Misi Selesai
         </div>
       ) : (
-        <ActionInput onActionSubmit={handleActionSubmit} disabled={loading} locationContext={gameState.locationContext} />
+        <>
+          <StoryLogView logs={logs} loading={loading} />
+          {gameState.status_kota === 'Aman' || gameState.status_kota === 'Harmonis' ? (
+            <div className="p-4 md:p-6 bg-slate-900 border-t border-slate-800 animate-in slide-in-from-bottom-8 flex flex-col items-center gap-4">
+              <p className="text-amber-400 font-bold uppercase tracking-widest text-center text-sm md:text-base">
+                Perjalanan dilanjutkan. Sambil transit, kelola logistikmu.
+              </p>
+              
+              <div className="flex flex-col md:flex-row gap-4 w-full max-w-2xl">
+                <button
+                  onClick={() => handleBuyFood()}
+                  disabled={gameState.uang_qris < 15000 || gameState.energi >= 100}
+                  className="flex-1 p-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
+                >
+                  <div className="text-emerald-400 font-bold">Beli Makanan (Rp 15.000)</div>
+                  <div className="text-xs text-slate-400">+20 Energi</div>
+                </button>
+                <button
+                  onClick={() => handleWriteArticle()}
+                  disabled={gameState.energi < 10}
+                  className="flex-1 p-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
+                >
+                  <div className="text-cyan-400 font-bold">Tulis Artikel</div>
+                  <div className="text-xs text-slate-400">-10 Energi, +Rp Acak</div>
+                </button>
+                <button
+                  onClick={() => setIsTahfidzOpen(true)}
+                  disabled={gameState.energi < 5}
+                  className="flex-1 p-4 bg-amber-900/50 hover:bg-amber-800/50 disabled:opacity-50 disabled:cursor-not-allowed border border-amber-700/50 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors shadow-[inset_0_0_15px_rgba(245,158,11,0.1)]"
+                >
+                  <div className="text-amber-400 font-bold">Murojaah (Ayat)</div>
+                  <div className="text-xs text-amber-200/50">-5 Energi, +15 Hifdz</div>
+                </button>
+              </div>
+
+              <button
+                onClick={handleNextScenario}
+                disabled={gameState.energi <= 20}
+                className="w-full max-w-2xl py-4 mt-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all uppercase tracking-widest flex items-center justify-center gap-3 text-sm"
+              >
+                Lanjutkan Perjalanan (Rihlah)
+              </button>
+              {gameState.energi <= 20 && (
+                <p className="text-red-400 text-xs text-center font-mono">Energi tidak cukup untuk melanjutkan perjalanan (Minimal &gt; 20).</p>
+              )}
+            </div>
+          ) : gameState.status_kota === 'Tamat' ? (
+            <div className="p-6 bg-slate-900 border-t border-slate-800 flex justify-center text-amber-400 font-bold uppercase tracking-widest text-center">
+              Tamat - Semua Misi Selesai
+            </div>
+          ) : (
+            <div className="flex flex-col bg-slate-900 border-t border-slate-800">
+              {activeQuest && activeQuest.ayat_arab && (
+                <div className="px-4 py-3 bg-emerald-950/20 border-b border-emerald-900/30 flex flex-col gap-2 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <BookOpen size={64} />
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold bg-emerald-950/50 px-2 py-1 rounded border border-emerald-900/50">Ayat Rujukan Misi</span>
+                    <span className="text-xs text-emerald-200 font-medium">{activeQuest.ayat_rujukan}</span>
+                  </div>
+                  <p className="text-right font-arabic text-xl md:text-2xl leading-loose text-emerald-100" dir="rtl">
+                    {activeQuest.ayat_arab}
+                  </p>
+                  <p className="text-xs italic text-emerald-200/80 leading-relaxed border-l-2 border-emerald-800 pl-3 mt-1">
+                    "{activeQuest.ayat_terjemahan}"
+                  </p>
+                </div>
+              )}
+              <ActionInput onActionSubmit={handleActionSubmit} disabled={loading} locationContext={gameState.locationContext} />
+            </div>
+          )}
+        </>
       )}
       
       <DilemmaArchive 
@@ -624,6 +720,7 @@ export default function App() {
         gameState={gameState}
         onEquip={handleEquip}
         onBuy={handleBuy}
+        onResetData={handleResetData}
       />
 
       <QuestBoard

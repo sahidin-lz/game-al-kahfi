@@ -1,18 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
-    }
-
-    match /users/{id} {
-      allow read: if request.auth != null && (request.auth.uid == id || isAdmin());
-      allow create, update: if request.auth != null && request.auth.uid == id;
-      allow delete: if false;
+    match /users/{userId} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'sahidin30@gmail.com' || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
     match /saves/{saveId} {
-      allow read, update, delete: if request.auth != null && (saveId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null && saveId == request.auth.uid;
+      allow read, write: if request.auth != null && (request.auth.uid == saveId || request.auth.token.email == 'sahidin30@gmail.com' || request.auth.token.firebase.sign_in_provider == 'google.com');
     }
   }
 }

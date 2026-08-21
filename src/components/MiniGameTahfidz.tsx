@@ -363,11 +363,16 @@ export function MiniGameTahfidz({ isOpen, onClose, gameState, onComplete }: Prop
           )}
 
           {gameMode === 'puzzle' && status === 'correct' && (
-            <div className="text-center text-emerald-400 bg-emerald-950/30 py-3 rounded-lg border border-emerald-900/50 mb-6 font-bold flex flex-col items-center gap-2 animate-in zoom-in">
-              <div className="flex items-center gap-2 text-lg">
-                <CheckCircle size={20} /> Masha Allah! Susunan ayat sempurna.
+            <div className="text-center text-emerald-400 bg-emerald-950/30 py-4 rounded-xl border border-emerald-500/50 mb-6 flex flex-col items-center gap-3 animate-in zoom-in shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              <div className="flex items-center gap-2 text-xl font-bold">
+                🎉 Masha Allah! Bacaan Sempurna.
               </div>
-              <p className="text-sm text-emerald-200/80 italic font-normal">"{currentVerse.translation}"</p>
+              <p className="text-sm text-emerald-200/90 italic font-medium max-w-md">
+                "{currentVerse.translation}"
+              </p>
+              <div className="mt-2 text-xs bg-slate-900 text-amber-400 px-4 py-2 rounded-lg border border-amber-500/30">
+                💡 <strong>Tugas Selanjutnya:</strong> Tutup layar ini, lalu tuliskan/orasikan bagaimana makna ayat di atas dapat menjadi solusi Sosiologi untuk kasus di kota ini!
+              </div>
             </div>
           )}
 

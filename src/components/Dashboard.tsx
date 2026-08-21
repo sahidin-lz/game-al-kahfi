@@ -9,9 +9,10 @@ interface Props {
   gameState: GameState;
   onEquip: (type: 'alasKaki' | 'pakaian', itemId: string) => void;
   onBuy: (itemId: string) => void;
+  onResetData?: () => void;
 }
 
-export function Dashboard({ isOpen, onClose, gameState, onEquip, onBuy }: Props) {
+export function Dashboard({ isOpen, onClose, gameState, onEquip, onBuy, onResetData }: Props) {
   const [activeTab, setActiveTab] = useState<'inventaris' | 'toko'>('inventaris');
   const [qrisStatus, setQrisStatus] = useState<'idle' | 'scanning' | 'success' | 'error'>('idle');
   const [selectedShopItem, setSelectedShopItem] = useState<string | null>(null);
@@ -200,6 +201,18 @@ export function Dashboard({ isOpen, onClose, gameState, onEquip, onBuy }: Props)
             </div>
           )}
         </div>
+        
+        {/* Reset Data Button */}
+        {onResetData && (
+          <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+            <button
+              onClick={onResetData}
+              className="w-full py-3 bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 font-bold rounded-xl transition-all uppercase tracking-widest flex items-center justify-center gap-3 text-xs border border-transparent hover:border-red-900"
+            >
+              🔄 Hapus Semua Save Data & Ulang dari Awal
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

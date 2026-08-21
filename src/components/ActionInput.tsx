@@ -99,7 +99,7 @@ export function ActionInput({ onActionSubmit, disabled, locationContext }: Props
         
         <MusicGenerator context={locationContext || 'A tense situation in a local village'} />
         
-        <div className="flex items-center space-x-4 mb-3 overflow-x-auto pb-2">
+        <div className="flex items-center space-x-4 mb-3 overflow-x-auto pb-2 scrollbar-none">
           <button
             type="button"
             onClick={() => setInputType('teks_esai')}
@@ -119,23 +119,27 @@ export function ActionInput({ onActionSubmit, disabled, locationContext }: Props
           
           <div className="w-px h-4 bg-slate-800 mx-2"></div>
           
+          {/* Tombol Pencarian Budaya Nusantara */}
           <button
             type="button"
-            onClick={() => handleGrounding('search')}
+            onClick={() => {
+              const query = text.trim() ? `Kearifan lokal budaya nusantara Indonesia terkait: ${text}` : "Contoh resolusi konflik dalam kebudayaan Nusantara Indonesia";
+              handleGrounding('search');
+              setText(query); // Auto-fill query
+            }}
             disabled={disabled || isGrounding}
-            className="flex items-center space-x-2 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase transition-colors border border-blue-900/50 text-blue-400 hover:bg-blue-900/30 disabled:opacity-50 whitespace-nowrap"
+            className="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase transition-colors border border-amber-500/50 text-amber-400 hover:bg-amber-950/50 disabled:opacity-50 whitespace-nowrap shadow-[0_0_10px_rgba(245,158,11,0.2)]"
           >
-            <Globe size={14} />
-            <span>Cari Fakta (Search)</span>
+            🌋 <span>Info Nusantara (AI)</span>
           </button>
+          
           <button
             type="button"
             onClick={() => handleGrounding('maps')}
             disabled={disabled || isGrounding}
-            className="flex items-center space-x-2 px-3 py-1.5 rounded text-xs font-bold tracking-widest uppercase transition-colors border border-amber-900/50 text-amber-400 hover:bg-amber-900/30 disabled:opacity-50 whitespace-nowrap"
+            className="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase transition-colors border border-blue-500/50 text-blue-400 hover:bg-blue-950/50 disabled:opacity-50 whitespace-nowrap"
           >
-            <MapPin size={14} />
-            <span>Lokasi (Maps)</span>
+            🗺️ <span>Cari Lokasi</span>
           </button>
         </div>
         
