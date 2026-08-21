@@ -1,0 +1,57 @@
+{
+  "databases": [
+    {
+      "id": "ai-studio-alkahfirpg-10cac7a3-c5b1-4186-b6dc-9c43e6d021cb",
+      "collections": {
+        "users": {
+          "security": {
+            "read": "request.auth != null && request.auth.uid == id",
+            "create": "request.auth != null && request.auth.uid == id",
+            "update": "request.auth != null && request.auth.uid == id",
+            "delete": "false"
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "displayName": { "type": "string", "optional": true },
+              "email": { "type": "string" },
+              "createdAt": { "type": "timestamp" },
+              "lastActiveAt": { "type": "timestamp" }
+            }
+          }
+        },
+        "saves": {
+          "security": {
+            "read": "request.auth != null && resource.data.uid == request.auth.uid",
+            "create": "request.auth != null && request.resource.data.uid == request.auth.uid",
+            "update": "request.auth != null && resource.data.uid == request.auth.uid",
+            "delete": "request.auth != null && resource.data.uid == request.auth.uid"
+          },
+          "schema": {
+            "type": "object",
+            "properties": {
+              "uid": { "type": "string" },
+              "createdAt": { "type": "timestamp" },
+              "gameState": {
+                "type": "object",
+                "properties": {
+                  "energi": { "type": "number" },
+                  "uang_qris": { "type": "number" },
+                  "hifdz": { "type": "number" },
+                  "faham": { "type": "number" },
+                  "ukhuwah": { "type": "number" },
+                  "ketegangan_sosial": { "type": "number" },
+                  "locationContext": { "type": "string" },
+                  "status_kota": { "type": "string" }
+                }
+              },
+              "logs": {
+                "type": "array"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
