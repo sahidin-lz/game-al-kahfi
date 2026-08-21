@@ -27,7 +27,13 @@ export function LandingPage() {
     setLoading(true);
 
     try {
-      const virtualEmail = `${username.toLowerCase().trim()}@alkahfi-rpg.com`;
+      // Membersihkan spasi dan karakter tidak valid untuk memastikan format email diterima oleh Firebase
+      const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+      if (!sanitizedUsername) {
+        throw new Error("Username tidak valid (hanya gunakan huruf dan angka)");
+      }
+      
+      const virtualEmail = `${sanitizedUsername}@alkahfi-rpg.com`;
 
       if (mode === 'register') {
         if (!name.trim()) throw new Error("Nama harus diisi");
@@ -40,6 +46,7 @@ export function LandingPage() {
       console.error("Auth error:", err);
       // Simplify Firebase error messages for users
       if (err.code === 'auth/email-already-in-use') setError('Username sudah digunakan.');
+      else if (err.code === 'auth/invalid-email') setError('Format username tidak valid.');
       else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') setError('Username atau password salah.');
       else if (err.code === 'auth/weak-password') setError('Password minimal 6 karakter.');
       else setError(err.message);
